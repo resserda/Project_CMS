@@ -26,6 +26,7 @@ int customer_count = 0;
 int clothing_count = 0;
 
 // 함수 원형 선언
+int admin_login();
 void admin_menu();
 void member_menu();
 void register_customer();
@@ -46,7 +47,9 @@ int main(){
 
         switch(choice) {
             case 1:
-                admin_menu();
+                if (admin_login()) {
+                    admin_menu();
+                }
                 break;
             case 2:
                 member_menu();
@@ -62,15 +65,53 @@ int main(){
 }
 
 /**
+관리자 로그인 기능
+*/
+int admin_login() {
+    char username[50];
+    char password[50];
+    const char admin_user[] = "admin";
+    const char admin_pass[] = "1234";
+
+    printf("\n--- 관리자 로그인 ---\n");
+    printf("아이디: ");
+    scanf("%s", username);
+    printf("비밀번호: ");
+    scanf("%s", password);
+
+    if (strcmp(username, admin_user) == 0 && strcmp(password, admin_pass) == 0) {
+        printf("로그인 성공!\n");
+        return 1; // 로그인 성공
+    } else {
+        printf("아이디 또는 비밀번호가 일치하지 않습니다.\n");
+        return 0; // 로그인 실패
+    }
+}
+
+/**
 관리자 메뉴 기능
  */
 void admin_menu() {
-    printf("\n--- 관리자 메뉴 ---\n");
-    printf("1. 의류 등록\n");
-    printf("2. 재고 관리\n");
-    printf("3. 고객 등록\n");
-    printf("4. 고객 관리\n");
-    // 추가 기능 구현 가능
+    int choice;
+    while(1) {
+        printf("\n--- 관리자 메뉴 ---\n");
+        printf("1. 의류 등록\n");
+        printf("2. 재고 관리\n");
+        printf("3. 고객 등록\n");
+        printf("4. 고객 관리\n");
+        printf("5. 메인 메뉴로 돌아가기\n");
+        printf("메뉴 선택: ");
+        scanf("%d", &choice);
+
+        switch(choice) {
+            case 1: register_clothing(); break;
+            case 2: manage_inventory(); break;
+            case 3: register_customer(); break;
+            case 4: manage_customer(); break;
+            case 5: return; // 메인 메뉴로 복귀
+            default: printf("잘못된 선택입니다. 다시 시도하세요.\n");
+        }
+    }
 }
 
 /**
@@ -102,7 +143,7 @@ void manage_customer() {
 }
 
 /**
- * @brief 신규 의류 등록 기능
+신규 의류 등록 기능
  */
 void register_clothing() {
     printf("\n--- 신규 의류 등록 ---\n");
@@ -110,7 +151,7 @@ void register_clothing() {
 }
 
 /**
- * @brief 재고 관리 기능
+재고 관리 기능
  */
 void manage_inventory() {
     printf("\n--- 재고 관리 ---\n");
