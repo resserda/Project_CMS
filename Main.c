@@ -16,7 +16,7 @@ typedef struct {
     char color[20];
     int price;
     int stock; // 재고 수량
-    int itemID;
+    char itemID[20];
 } Clothing;
 
 // 데이터 저장을 위한 전역 변수 (배열)
@@ -102,6 +102,7 @@ void admin_menu() {
         printf("5. 메인 메뉴로 돌아가기\n");
         printf("메뉴 선택: ");
         scanf("%d", &choice);
+        while (getchar() != '\n'); // 입력 버퍼에 남아있는 개행 문자 제거
 
         switch(choice) {
             case 1: register_clothing(); break;
@@ -143,17 +144,152 @@ void manage_customer() {
 }
 
 /**
-신규 의류 등록 기능
+ * 신규 의류 등록 기능
  */
 void register_clothing() {
+    if (clothing_count >= 100) {
+        printf("더 이상 의류를 등록할 수 없습니다. (최대 100개)\n");
+        return;
+    }
+
     printf("\n--- 신규 의류 등록 ---\n");
-    printf("의류 등록 기능이 호출되었습니다.\n");
+    Clothing new_item;
+    char buffer[100]; // 입력을 안전하게 받기 위한 버퍼
+
+    printf("의류 이름: ");
+    if (fgets(buffer, sizeof(buffer), stdin)) {
+        buffer[strcspn(buffer, "\n")] = 0; // 개행 문자 제거
+        strncpy(new_item.name, buffer, sizeof(new_item.name) - 1);
+    }
+
+    printf("사이즈: ");
+    if (fgets(buffer, sizeof(buffer), stdin)) {
+        buffer[strcspn(buffer, "\n")] = 0; // 개행 문자 제거
+        strncpy(new_item.size, buffer, sizeof(new_item.size) - 1);
+    }
+
+    printf("색상: ");
+    if (fgets(buffer, sizeof(buffer), stdin)) {
+        buffer[strcspn(buffer, "\n")] = 0; // 개행 문자 제거
+        strncpy(new_item.color, buffer, sizeof(new_item.color) - 1);
+    }
+
+    printf("가격: ");
+    if (fgets(buffer, sizeof(buffer), stdin)) {
+        sscanf(buffer, "%d", &new_item.price);
+    }
+
+    printf("재고 수량: ");
+    if (fgets(buffer, sizeof(buffer), stdin)) {
+        sscanf(buffer, "%d", &new_item.stock);
+    }
+    
+    printf("품번(itemID): ");
+    if (fgets(buffer, sizeof(buffer), stdin)) {
+        buffer[strcspn(buffer, "\n")] = 0; // 개행 문자 제거
+        strncpy(new_item.itemID, buffer, sizeof(new_item.itemID) - 1);
+    }
+
+    clothing_list[clothing_count] = new_item;
+    clothing_count++;
+
+    printf("의류 등록이 완료되었습니다!\n");
 }
+
 
 /**
 재고 관리 기능
  */
 void manage_inventory() {
     printf("\n--- 재고 관리 ---\n");
-    printf("현재 재고 목록을 표시합니다.\n");
+
+    if (clothing_count == 0) {
+        printf("등록된 의류가 없습니다.\n");
+        return;
+    }
+
+    // 현재 등록된 모든 의류 목록 출력
+    printf("-------------------- 현재 의류 목록 --------------------\n");
+    printf("품번\t이름\t\t사이즈\t색상\t가격\t재고\n");
+    printf("----------------------------------------------------------\n");
+    for (int i = 0; i < clothing_count; i++) {
+        printf("%s\t%s\t%s\t%s\t%d\t%d\n",
+               clothing_list[i].itemID, clothing_list[i].name, clothing_list[i].size,
+               clothing_list[i].color, clothing_list[i].price, clothing_list[i].stock);
+    }
+    printf("----------------------------------------------------------\n\n");
+
+    int choice;
+    printf("1. 재고 수량 수정\n");
+    printf("2. 의류 삭제\n");
+    printf("3. 이전 메뉴로\n");
+    printf("메뉴 선택: ");
+    char buffer[100];
+    if (fgets(buffer, sizeof(buffer), stdin)) {
+        sscanf(buffer, "%d", &choice);
+    }
+
+    switch(choice) {
+        case 1: { // 재고 수량 수정
+            char target_id[20];
+            printf("재고를 수정할 의류의 품번(itemID)을 입력하세요: ");
+            if (fgets(buffer, sizeof(buffer), stdin)) {
+                buffer[strcspn(buffer, "\n")] = 0;
+                strncpy(target_id, buffer, sizeof(target_id) - 1);
+            }
+
+            int found_index = -1;
+            for (int i = 0; i < clothing_count; i++) {
+                if (strcmp(clothing_list[i].itemID, target_id) == 0) {
+                    found_index = i;
+                    break;
+                }
+            }
+
+            if (found_index != -1) {
+                int new_stock;
+                printf("새로운 재고 수량을 입력하세요: ");
+                if (fgets(buffer, sizeof(buffer), stdin)) {
+                    sscanf(buffer, "%d", &new_stock);
+                }
+                clothing_list[found_index].stock = new_stock;
+                printf("재고 정보가 성공적으로 업데이트되었습니다.\n");
+            } else {
+                printf("해당 품번의 의류를 찾을 수 없습니다.\n");
+            }
+            break;
+        }
+        case 2: { // 의류 삭제
+            char target_id[20];
+            printf("삭제할 의류의 품번(itemID)을 입력하세요: ");
+            if (fgets(buffer, sizeof(buffer), stdin)) {
+                buffer[strcspn(buffer, "\n")] = 0;
+                strncpy(target_id, buffer, sizeof(target_id) - 1);
+            }
+
+            int found_index = -1;
+            for (int i = 0; i < clothing_count; i++) {
+                if (strcmp(clothing_list[i].itemID, target_id) == 0) {
+                    found_index = i;
+                    break;
+                }
+            }
+
+            if (found_index != -1) {
+                // 찾은 위치부터 배열의 끝까지 모든 요소를 한 칸씩 앞으로 이동
+                for (int i = found_index; i < clothing_count - 1; i++) {
+                    clothing_list[i] = clothing_list[i + 1];
+                }
+                clothing_count--; // 전체 의류 수 감소
+                printf("의류가 성공적으로 삭제되었습니다.\n");
+            } else {
+                printf("해당 품번의 의류를 찾을 수 없습니다.\n");
+            }
+            break;
+        }
+        case 3:
+            return; // 이전 메뉴로 돌아가기
+        default:
+            printf("잘못된 선택입니다. 다시 시도하세요.\n");
+    }
 }
