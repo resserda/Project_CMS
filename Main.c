@@ -7,6 +7,7 @@ typedef struct {
     char name[50];
     char phone[20];
     int customerID;
+    int mileage;
 } Customer;
 
 // 의류 정보 구조체
@@ -33,6 +34,7 @@ void register_customer();
 void manage_customer();
 void register_clothing();
 void manage_inventory();
+void purchase_clothing();
 
 int main(){
     int choice;
@@ -43,7 +45,10 @@ int main(){
         printf("2. 회원 메뉴\n");
         printf("3. 프로그램 종료\n");
         printf("메뉴 선택: ");
-        scanf("%d", &choice);
+        char buffer[100];
+        if (fgets(buffer, sizeof(buffer), stdin)) {
+            sscanf(buffer, "%d", &choice);
+        }
 
         switch(choice) {
             case 1:
@@ -64,7 +69,7 @@ int main(){
     return 0;
 }
 
-/**
+/*
 관리자 로그인 기능
 */
 int admin_login() {
@@ -88,9 +93,9 @@ int admin_login() {
     }
 }
 
-/**
+/*
 관리자 메뉴 기능
- */
+*/
 void admin_menu() {
     int choice;
     while(1) {
@@ -115,37 +120,256 @@ void admin_menu() {
     }
 }
 
-/**
+/*
 회원(고객) 메뉴 기능
- */
+*/
 void member_menu() {
-    printf("\n--- 회원 메뉴 ---\n");
-    printf("환영합니다! (기능 준비중)\n");
-    // 향후 의류 검색, 구매 등의 기능 추가 가능
+    int choice;
+    char buffer[100];
+    while(1) {
+        printf("\n--- 회원 메뉴 ---\n");
+        printf("1. 의류 구매\n");
+        printf("2. 메인 메뉴로 돌아가기\n");
+        printf("메뉴 선택: ");
+        if (fgets(buffer, sizeof(buffer), stdin)) {
+            sscanf(buffer, "%d", &choice);
+        }
+
+        switch(choice) {
+            case 1: purchase_clothing(); break;
+            case 2: return;
+            default: printf("잘못된 선택입니다. 다시 시도하세요.\n");
+        }
+    }
 }
 
-/**
+/*
 신규 고객 등록 기능
- */
+*/
 void register_customer() {
+    if (customer_count >= 100) {
+        printf("더 이상 고객을 등록할 수 없습니다. (최대 100명)\n");
+        return;
+    }
+
     printf("\n--- 신규 고객 등록 ---\n");
-    // 여기에 고객 이름, 연락처 등을 입력받는 코드 추가
-    // 예: customer_list[customer_count].customerID = customer_count + 1;
-    // customer_count++;
-    printf("고객 등록 기능이 호출되었습니다.\n");
+    Customer new_customer;
+    char buffer[100];
+
+    printf("고객 이름: ");
+    if (fgets(buffer, sizeof(buffer), stdin)) {
+        buffer[strcspn(buffer, "\n")] = 0;
+        strncpy(new_customer.name, buffer, sizeof(new_customer.name) - 1);
+    }
+
+    printf("연락처: ");
+    if (fgets(buffer, sizeof(buffer), stdin)) {
+        buffer[strcspn(buffer, "\n")] = 0;
+        strncpy(new_customer.phone, buffer, sizeof(new_customer.phone) - 1);
+    }
+
+    printf("고객 ID (숫자): ");
+    if (fgets(buffer, sizeof(buffer), stdin)) {
+        sscanf(buffer, "%d", &new_customer.customerID);
+    }
+
+    new_customer.mileage = 0; // 마일리지 기본값 0으로 설정
+
+    customer_list[customer_count] = new_customer;
+    customer_count++;
+
+    printf("신규 고객 등록이 완료되었습니다!\n");
 }
 
-/**
+/*
 고객 관리 기능
- */
+*/
 void manage_customer() {
     printf("\n--- 고객 관리 ---\n");
-    printf("등록된 고객 목록을 표시합니다.\n");
+
+    if (customer_count == 0) {
+        printf("등록된 고객이 없습니다.\n");
+        return;
+    }
+
+    printf("-------------------- 현재 고객 목록 --------------------\n");
+    printf("고객ID\t이름\t\t연락처\t\t마일리지\n");
+    printf("----------------------------------------------------------\n");
+    for (int i = 0; i < customer_count; i++) {
+        printf("%d\t%s\t\t%s\t%d\n", customer_list[i].customerID, customer_list[i].name, customer_list[i].phone, customer_list[i].mileage);
+    }
+    printf("----------------------------------------------------------\n\n");
+
+    int choice;
+    char buffer[100];
+    printf("1. 고객 정보 수정\n");
+    printf("2. 고객 정보 삭제\n");
+    printf("3. 이전 메뉴로\n");
+    printf("메뉴 선택: ");
+    if (fgets(buffer, sizeof(buffer), stdin)) {
+        sscanf(buffer, "%d", &choice);
+    }
+
+    switch (choice) {
+        case 1: { // 고객 정보 수정
+            int target_id;
+            printf("수정할 고객의 ID를 입력하세요: ");
+            if (fgets(buffer, sizeof(buffer), stdin)) sscanf(buffer, "%d", &target_id);
+
+            int found_index = -1;
+            for (int i = 0; i < customer_count; i++) {
+                if (customer_list[i].customerID == target_id) {
+                    found_index = i;
+                    break;
+                }
+            }
+
+            if (found_index != -1) {
+                printf("새로운 고객 이름: ");
+                if (fgets(buffer, sizeof(buffer), stdin)) {
+                    buffer[strcspn(buffer, "\n")] = 0;
+                    strncpy(customer_list[found_index].name, buffer, sizeof(customer_list[found_index].name) - 1);
+                }
+                printf("새로운 연락처: ");
+                if (fgets(buffer, sizeof(buffer), stdin)) {
+                    buffer[strcspn(buffer, "\n")] = 0;
+                    strncpy(customer_list[found_index].phone, buffer, sizeof(customer_list[found_index].phone) - 1);
+                }
+                printf("고객 정보가 성공적으로 업데이트되었습니다.\n");
+            } else {
+                printf("해당 ID의 고객을 찾을 수 없습니다.\n");
+            }
+            break;
+        }
+        case 2: { // 고객 정보 삭제
+            int target_id;
+            printf("삭제할 고객의 ID를 입력하세요: ");
+            if (fgets(buffer, sizeof(buffer), stdin)) sscanf(buffer, "%d", &target_id);
+
+            int found_index = -1;
+            for (int i = 0; i < customer_count; i++) {
+                if (customer_list[i].customerID == target_id) {
+                    found_index = i;
+                    break;
+                }
+            }
+
+            if (found_index != -1) {
+                for (int i = found_index; i < customer_count - 1; i++) {
+                    customer_list[i] = customer_list[i + 1];
+                }
+                customer_count--;
+                printf("고객 정보가 성공적으로 삭제되었습니다.\n");
+            } else {
+                printf("해당 ID의 고객을 찾을 수 없습니다.\n");
+            }
+            break;
+        }
+        case 3:
+            return;
+        default:
+            printf("잘못된 선택입니다. 다시 시도하세요.\n");
+    }
 }
 
-/**
- * 신규 의류 등록 기능
- */
+/*
+의류 구매 및 마일리지 적립 기능
+*/
+void purchase_clothing() {
+    char buffer[100];
+    int customer_id;
+    int customer_idx = -1;
+
+    printf("\n--- 의류 구매 ---\n");
+
+    if (customer_count == 0 || clothing_count == 0) {
+        printf("등록된 고객 또는 의류가 없어 구매를 진행할 수 없습니다.\n");
+        return;
+    }
+
+    // 1. 고객 확인
+    printf("고객 ID를 입력하세요: ");
+    if (fgets(buffer, sizeof(buffer), stdin)) {
+        sscanf(buffer, "%d", &customer_id);
+    }
+
+    for (int i = 0; i < customer_count; i++) {
+        if (customer_list[i].customerID == customer_id) {
+            customer_idx = i;
+            break;
+        }
+    }
+
+    if (customer_idx == -1) {
+        printf("해당 ID의 고객을 찾을 수 없습니다.\n");
+        return;
+    }
+
+    printf("환영합니다, %s 님!\n", customer_list[customer_idx].name);
+
+    // 2. 의류 목록 표시
+    printf("-------------------- 구매 가능 의류 목록 --------------------\n");
+    printf("품번\t이름\t\t사이즈\t색상\t가격\t재고\n");
+    printf("----------------------------------------------------------\n");
+    for (int i = 0; i < clothing_count; i++) {
+        printf("%s\t%s\t\t%s\t%s\t%d\t%d\n",
+               clothing_list[i].itemID, clothing_list[i].name, clothing_list[i].size,
+               clothing_list[i].color, clothing_list[i].price, clothing_list[i].stock);
+    }
+    printf("----------------------------------------------------------\n\n");
+
+    // 3. 의류 선택 및 구매
+    char target_item_id[20];
+    int clothing_idx = -1;
+    int quantity;
+
+    printf("구매할 의류의 품번(itemID)을 입력하세요: ");
+    if (fgets(buffer, sizeof(buffer), stdin)) {
+        buffer[strcspn(buffer, "\n")] = 0;
+        strncpy(target_item_id, buffer, sizeof(target_item_id) - 1);
+    }
+
+    for (int i = 0; i < clothing_count; i++) {
+        if (strcmp(clothing_list[i].itemID, target_item_id) == 0) {
+            clothing_idx = i;
+            break;
+        }
+    }
+
+    if (clothing_idx == -1) {
+        printf("해당 품번의 의류를 찾을 수 없습니다.\n");
+        return;
+    }
+
+    printf("구매할 수량을 입력하세요: ");
+    if (fgets(buffer, sizeof(buffer), stdin)) {
+        sscanf(buffer, "%d", &quantity);
+    }
+
+    if (quantity <= 0) {
+        printf("구매 수량은 1 이상이어야 합니다.\n");
+        return;
+    }
+
+    // 4. 재고 확인 및 처리
+    if (clothing_list[clothing_idx].stock < quantity) {
+        printf("재고가 부족합니다. (현재 재고: %d)\n", clothing_list[clothing_idx].stock);
+        return;
+    }
+
+    clothing_list[clothing_idx].stock -= quantity; // 재고 차감
+    int total_price = clothing_list[clothing_idx].price * quantity;
+    int earned_mileage = total_price * 0.05; // 구매액의 5%를 마일리지로 적립
+    customer_list[customer_idx].mileage += earned_mileage;
+
+    printf("\n구매가 완료되었습니다!\n");
+    printf("총 결제 금액: %d원\n", total_price);
+    printf("적립된 마일리지: %d점 (총 마일리지: %d점)\n", earned_mileage, customer_list[customer_idx].mileage);
+}
+
+/*
+신규 의류 등록 기능
+*/
 void register_clothing() {
     if (clothing_count >= 100) {
         printf("더 이상 의류를 등록할 수 없습니다. (최대 100개)\n");
@@ -197,9 +421,9 @@ void register_clothing() {
 }
 
 
-/**
+/*
 재고 관리 기능
- */
+*/
 void manage_inventory() {
     printf("\n--- 재고 관리 ---\n");
 
