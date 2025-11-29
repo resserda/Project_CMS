@@ -305,7 +305,7 @@ void purchase_clothing() {
         return;
     }
 
-    printf("환영합니다, %s 님!\n", customer_list[customer_idx].name);
+    printf("환영합니다, %s 님! (보유 마일리지: %d점)\n", customer_list[customer_idx].name, customer_list[customer_idx].mileage);
 
     // 2. 의류 목록 표시
     printf("-------------------- 구매 가능 의류 목록 --------------------\n");
@@ -357,14 +357,54 @@ void purchase_clothing() {
         return;
     }
 
-    clothing_list[clothing_idx].stock -= quantity; // 재고 차감
+    // 4. 재고 확인 및 결제 처리
     int total_price = clothing_list[clothing_idx].price * quantity;
-    int earned_mileage = total_price * 0.05; // 구매액의 5%를 마일리지로 적립
+    int final_price = total_price;
+    int used_mileage = 0;
+
+    // 5. 마일리지 사용
+    if (customer_list[customer_idx].mileage > 0) {
+        char use_mileage_choice;
+        printf("\n총 결제 예정 금액: %d원\n", total_price);
+        printf("현재 보유 마일리지: %d점\n", customer_list[customer_idx].mileage);
+        printf("마일리지를 사용하시겠습니까? (y/n): ");
+        if (fgets(buffer, sizeof(buffer), stdin)) {
+            sscanf(buffer, " %c", &use_mileage_choice);
+        }
+
+        if (use_mileage_choice == 'y' || use_mileage_choice == 'Y') {
+            printf("사용할 마일리지를 입력하세요: ");
+            if (fgets(buffer, sizeof(buffer), stdin)) {
+                sscanf(buffer, "%d", &used_mileage);
+            }
+
+            if (used_mileage < 0) {
+                printf("사용할 마일리지는 0 이상이어야 합니다. 마일리지 사용이 취소됩니다.\n");
+                used_mileage = 0;
+            } else if (used_mileage > customer_list[customer_idx].mileage) {
+                printf("보유 마일리지를 초과하여 사용할 수 없습니다. 마일리지 사용이 취소됩니다.\n");
+                used_mileage = 0;
+            } else if (used_mileage > total_price) {
+                printf("결제 금액을 초과하여 마일리지를 사용할 수 없습니다. 마일리지 사용이 취소됩니다.\n");
+                used_mileage = 0;
+            }
+
+            if (used_mileage > 0) {
+                customer_list[customer_idx].mileage -= used_mileage;
+                final_price = total_price - used_mileage;
+            }
+        }
+    }
+
+    clothing_list[clothing_idx].stock -= quantity; // 재고 차감
+    int earned_mileage = final_price * 0.05; // 실제 결제액의 5%를 마일리지로 적립
     customer_list[customer_idx].mileage += earned_mileage;
 
     printf("\n구매가 완료되었습니다!\n");
-    printf("총 결제 금액: %d원\n", total_price);
-    printf("적립된 마일리지: %d점 (총 마일리지: %d점)\n", earned_mileage, customer_list[customer_idx].mileage);
+    printf("총 상품 금액: %d원\n", total_price);
+    printf("사용한 마일리지: %d점\n", used_mileage);
+    printf("최종 결제 금액: %d원\n", final_price);
+    printf("적립된 마일리지: %d점 (남은 총 마일리지: %d점)\n", earned_mileage, customer_list[customer_idx].mileage);
 }
 
 /*
