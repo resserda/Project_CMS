@@ -35,11 +35,13 @@ void manage_customer();
 void register_clothing();
 void manage_inventory();
 void purchase_clothing();
+void search_clothing();
 void save_data();
 void load_data();
 
 int main(){
     int choice;
+    load_data(); // 프로그램 시작 시 데이터 불러오기
 
     load_data();
     while(1) {
@@ -65,6 +67,7 @@ int main(){
             case 3:
                 save_data();
                 printf("프로그램을 종료합니다.\n");
+                save_data(); // 프로그램 종료 시 데이터 저장
                 return 0;
             default:
                 printf("잘못된 선택입니다. 다시 시도하세요.\n");
@@ -133,15 +136,17 @@ void member_menu() {
     while(1) {
         printf("\n--- 회원 메뉴 ---\n");
         printf("1. 의류 구매\n");
-        printf("2. 메인 메뉴로 돌아가기\n");
+        printf("2. 의류 검색\n");
+        printf("3. 메인 메뉴로 돌아가기\n");
         printf("메뉴 선택: ");
         if (fgets(buffer, sizeof(buffer), stdin)) {
             sscanf(buffer, "%d", &choice);
         }
 
         switch(choice) {
-            case 1: purchase_clothing(); break;
-            case 2: return;
+            case 1: purchase_clothing();break;
+            case 2: search_clothing(); break;
+            case 3: return;
             default: printf("잘못된 선택입니다. 다시 시도하세요.\n");
         }
     }
@@ -277,47 +282,51 @@ void manage_customer() {
 }
 
 /*
-데이터 저장 기능
+데이터를 파일에 저장하는 기능
 */
 void save_data() {
-    FILE *fp = fopen("cms_data.dat", "wb");
-    if (fp == NULL) {
-        printf("파일 저장 중 오류가 발생했습니다.\n");
+    FILE *fp_customers, *fp_clothing;
+
+    // 고객 정보 저장
+    fp_customers = fopen("customers.dat", "wb");
+    if (fp_customers == NULL) {
+        printf("고객 정보 저장 파일을 열 수 없습니다.\n");
         return;
     }
+    fwrite(&customer_count, sizeof(int), 1, fp_customers);
+    fwrite(customer_list, sizeof(Customer), customer_count, fp_customers);
+    fclose(fp_customers);
 
-    fwrite(&customer_count, sizeof(int), 1, fp);
-    if (customer_count > 0)
-        fwrite(customer_list, sizeof(Customer), customer_count, fp);
+    // 의류 정보 저장
+    fp_clothing = fopen("clothing.dat", "wb");
+    if (fp_clothing == NULL) {
+        printf("의류 정보 저장 파일을 열 수 없습니다.\n");
+        return;
+    }
+    fwrite(&clothing_count, sizeof(int), 1, fp_clothing);
+    fwrite(clothing_list, sizeof(Clothing), clothing_count, fp_clothing);
+    fclose(fp_clothing);
 
-    fwrite(&clothing_count, sizeof(int), 1, fp);
-    if (clothing_count > 0)
-        fwrite(clothing_list, sizeof(Clothing), clothing_count, fp);
-
-    fclose(fp);
     printf("데이터가 성공적으로 저장되었습니다.\n");
 }
 
 /*
-데이터 불러오기 기능
+파일에서 데이터를 불러오는 기능
 */
 void load_data() {
-    FILE *fp = fopen("cms_data.dat", "rb");
-    if (fp == NULL) {
-        printf("저장된 데이터 파일이 없습니다. 새로운 데이터를 시작합니다.\n");
-        return;
+    FILE *fp_customers = fopen("customers.dat", "rb");
+    if (fp_customers != NULL) {
+        fread(&customer_count, sizeof(int), 1, fp_customers);
+        fread(customer_list, sizeof(Customer), customer_count, fp_customers);
+        fclose(fp_customers);
     }
 
-    fread(&customer_count, sizeof(int), 1, fp);
-    if (customer_count > 0)
-        fread(customer_list, sizeof(Customer), customer_count, fp);
-
-    fread(&clothing_count, sizeof(int), 1, fp);
-    if (clothing_count > 0)
-        fread(clothing_list, sizeof(Clothing), clothing_count, fp);
-
-    fclose(fp);
-    printf("데이터를 성공적으로 불러왔습니다.\n");
+    FILE *fp_clothing = fopen("clothing.dat", "rb");
+    if (fp_clothing != NULL) {
+        fread(&clothing_count, sizeof(int), 1, fp_clothing);
+        fread(clothing_list, sizeof(Clothing), clothing_count, fp_clothing);
+        fclose(fp_clothing);
+    }
 }
 
 /*
@@ -455,6 +464,76 @@ void purchase_clothing() {
     printf("적립된 마일리지: %d점 (남은 총 마일리지: %d점)\n", earned_mileage, customer_list[customer_idx].mileage);
 }
 
+/*
+의류 검색 기능
+*/
+void search_clothing() {
+    int choice;
+    char buffer[100];
+    char search_term[50];
+
+    if (clothing_count == 0) {
+        printf("\n등록된 의류가 없습니다.\n");
+        return;
+    }
+
+    while (1) {
+        printf("\n--- 의류 검색 ---\n");
+        printf("1. 이름으로 검색\n");
+        printf("2. 사이즈로 검색\n");
+        printf("3. 색상으로 검색\n");
+        printf("4. 이전 메뉴로 돌아가기\n");
+        printf("메뉴 선택: ");
+
+        if (fgets(buffer, sizeof(buffer), stdin)) {
+            sscanf(buffer, "%d", &choice);
+        } else {
+            return;
+        }
+
+        if (choice == 4) {
+            return; // 이전 메뉴로 돌아가기
+        }
+
+        if (choice < 1 || choice > 3) {
+            printf("잘못된 선택입니다. 다시 시도하세요.\n");
+            continue;
+        }
+
+        printf("검색어를 입력하세요: ");
+        if (fgets(buffer, sizeof(buffer), stdin)) {
+            buffer[strcspn(buffer, "\n")] = 0; // 개행 문자 제거
+            strncpy(search_term, buffer, sizeof(search_term) - 1);
+            search_term[sizeof(search_term) - 1] = '\0'; // Null 종료 보장
+        } else {
+            return;
+        }
+
+        int found_count = 0;
+        printf("\n-------------------- 검색 결과 --------------------\n");
+        printf("품번\t이름\t\t사이즈\t색상\t가격\t재고\n");
+        printf("----------------------------------------------------------\n");
+
+        for (int i = 0; i < clothing_count; i++) {
+            char* search_field = NULL;
+            if (choice == 1) search_field = clothing_list[i].name;
+            else if (choice == 2) search_field = clothing_list[i].size;
+            else if (choice == 3) search_field = clothing_list[i].color;
+
+            if (search_field && strstr(search_field, search_term)) {
+                printf("%s\t%s\t\t%s\t%s\t%d\t%d\n",
+                       clothing_list[i].itemID, clothing_list[i].name, clothing_list[i].size,
+                       clothing_list[i].color, clothing_list[i].price, clothing_list[i].stock);
+                found_count++;
+            }
+        }
+
+        if (found_count == 0) {
+            printf("검색 결과가 없습니다.\n");
+        }
+        printf("----------------------------------------------------------\n\n");
+    }
+}
 /*
 신규 의류 등록 기능
 */
