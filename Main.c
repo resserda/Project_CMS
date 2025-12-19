@@ -35,10 +35,13 @@ void manage_customer();
 void register_clothing();
 void manage_inventory();
 void purchase_clothing();
+void save_data();
+void load_data();
 
 int main(){
     int choice;
 
+    load_data();
     while(1) {
         printf("\n--- 의류 매장 관리 프로그램 ---\n");
         printf("1. 관리자 메뉴\n");
@@ -60,6 +63,7 @@ int main(){
                 member_menu();
                 break;
             case 3:
+                save_data();
                 printf("프로그램을 종료합니다.\n");
                 return 0;
             default:
@@ -270,6 +274,50 @@ void manage_customer() {
         default:
             printf("잘못된 선택입니다. 다시 시도하세요.\n");
     }
+}
+
+/*
+데이터 저장 기능
+*/
+void save_data() {
+    FILE *fp = fopen("cms_data.dat", "wb");
+    if (fp == NULL) {
+        printf("파일 저장 중 오류가 발생했습니다.\n");
+        return;
+    }
+
+    fwrite(&customer_count, sizeof(int), 1, fp);
+    if (customer_count > 0)
+        fwrite(customer_list, sizeof(Customer), customer_count, fp);
+
+    fwrite(&clothing_count, sizeof(int), 1, fp);
+    if (clothing_count > 0)
+        fwrite(clothing_list, sizeof(Clothing), clothing_count, fp);
+
+    fclose(fp);
+    printf("데이터가 성공적으로 저장되었습니다.\n");
+}
+
+/*
+데이터 불러오기 기능
+*/
+void load_data() {
+    FILE *fp = fopen("cms_data.dat", "rb");
+    if (fp == NULL) {
+        printf("저장된 데이터 파일이 없습니다. 새로운 데이터를 시작합니다.\n");
+        return;
+    }
+
+    fread(&customer_count, sizeof(int), 1, fp);
+    if (customer_count > 0)
+        fread(customer_list, sizeof(Customer), customer_count, fp);
+
+    fread(&clothing_count, sizeof(int), 1, fp);
+    if (clothing_count > 0)
+        fread(clothing_list, sizeof(Clothing), clothing_count, fp);
+
+    fclose(fp);
+    printf("데이터를 성공적으로 불러왔습니다.\n");
 }
 
 /*
